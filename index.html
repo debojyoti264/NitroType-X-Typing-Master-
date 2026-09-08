@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NitroType-X - Typing Master</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Tip Box Styles */
+        .modal-tip-box {
+            background: rgba(0, 229, 255, 0.1);
+            border-left: 4px solid var(--primary);
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 4px;
+            text-align: left;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        .modal-tip-box strong {
+            color: var(--primary);
+            display: block;
+            margin-bottom: 5px;
+            font-family: var(--font-code);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.85rem;
+        }
+
+        /* Voice Control Button Styles */
+        .voice-btn {
+            background-color: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--text-muted);
+        }
+        .voice-active {
+            background-color: var(--correct);
+            color: var(--bg-base);
+            border-color: var(--correct);
+            box-shadow: 0 0 15px rgba(57, 255, 20, 0.6);
+            animation: pulse-glow 1.5s infinite;
+        }
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 10px rgba(57, 255, 20, 0.4); }
+            50% { box-shadow: 0 0 25px rgba(57, 255, 20, 0.8); }
+            100% { box-shadow: 0 0 10px rgba(57, 255, 20, 0.4); }
+        }
+
+        /* Custom Mode Text Area Styles */
+        #customTextArea {
+            width: 100%;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--text-main);
+            border: none;
+            padding: 20px;
+            font-family: var(--font-code);
+            font-size: 16px;
+            outline: none;
+            resize: vertical;
+            border-radius: 12px 12px 0 0;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+        }
+        #customTextArea::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+        .custom-load-btn {
+            width: 100%;
+            border-radius: 0 0 12px 12px;
+            padding: 15px;
+            margin: 0;
+            border-top: 1px solid var(--surface-border);
+            border-left: none;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        /* Free Type Mode Styles */
+        #freeTypeArea {
+            width: 100%;
+            max-width: 1000px;
+            height: 250px;
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--text-main);
+            font-family: var(--font-code);
+            font-size: 24px;
+            border: 1px solid var(--surface-border);
+            padding: 25px;
+            outline: none;
+            border-radius: 12px;
+            resize: none;
+            margin-bottom: 30px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+            display: none;
+        }
+        
+        .shortcut-hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Centered Top Navigation & Logo -->
+    <header class="top-nav">
+        <div class="logo-container">
+            <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="32" height="32">
+                <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+                <line x1="6" y1="8" x2="6.01" y2="8"></line>
+                <line x1="10" y1="8" x2="10.01" y2="8"></line>
+                <line x1="14" y1="8" x2="14.01" y2="8"></line>
+                <line x1="18" y1="8" x2="18.01" y2="8"></line>
+                <line x1="8" y1="12" x2="8.01" y2="12"></line>
+                <line x1="12" y1="12" x2="12.01" y2="12"></line>
+                <line x1="16" y1="12" x2="16.01" y2="12"></line>
+                <line x1="7" y1="16" x2="17" y2="16"></line>
+            </svg>
+            <div class="logo-text">NitroType-<span>X</span></div>
+        </div>
+    </header>
+
+    <main class="main-wrapper">
+        <div class="controls glass-panel">
+            <select id="modeSelect" onchange="updateUI()">
+                <option value="paragraph">Paragraph Mode</option>
+                <option value="coding">Coding Mode</option>
+                <option value="custom">Custom Mode</option>
+                <option value="free">Free Type Mode</option>
+            </select>
+
+            <select id="langSelect" style="display: none;" onchange="loadLevel()">
+                <option value="python">Python</option>
+                <option value="cpp">C++</option>
+                <option value="html">HTML</option>
+                <option value="java">Java</option>
+            </select>
+
+            <select id="levelSelect" onchange="loadLevel()">
+                <!-- Options dynamically populated by JavaScript -->
+            </select>
+
+            <button onclick="resetTest()">Reset Test</button>
+            <button id="voiceBtn" class="voice-btn" onclick="toggleVoice()">🎤 Voice: OFF</button>
+        </div>
+        
+        <div class="shortcut-hint">Shortcuts: <strong>Alt + M</strong> (Change Mode) | <strong>Alt + R</strong> (Restart Test)</div>
+
+        <!-- Custom Input Area -->
+        <div id="customInputContainer" class="glass-panel" style="display: none; width: 100%; max-width: 1000px; margin-bottom: 30px; flex-direction: column;">
+            <textarea id="customTextArea" placeholder="Paste your custom C++, Python, or any raw text here..." spellcheck="false"></textarea>
+            <button class="custom-load-btn" onclick="loadCustomText()">Load Custom Code & Start</button>
+        </div>
+
+        <!-- Free Type Area -->
+        <textarea id="freeTypeArea" class="glass-panel" placeholder="Start typing anything here for pure speed testing..." spellcheck="false"></textarea>
+
+        <div class="typing-container glass-panel" id="textDisplay" onclick="document.getElementById('hidden-input').focus()">
+            <!-- Text injected here -->
+        </div>
+        
+        <textarea id="hidden-input" autocomplete="off" spellcheck="false"></textarea>
+
+        <div class="stats">
+            <div class="stat-box glass-panel">
+                <span class="val" id="wpm">0</span>
+                <span class="lbl">WPM</span>
+            </div>
+            <div class="stat-box glass-panel">
+                <span class="val" id="accuracy">100%</span>
+                <span class="lbl">Accuracy</span>
+            </div>
+            <div class="stat-box glass-panel">
+                <span class="val" id="errors">0</span>
+                <span class="lbl">Errors</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Developer Footer -->
+    <footer class="site-footer">
+        <p>Developed by: <span class="dev-name">Debojyoti Banerjee</span></p>
+        <p>Contact Developer: <a href="https://linktr.ee/Debojyoti_Banerjee" target="_blank" class="dev-link">https://linktr.ee/Debojyoti_Banerjee</a></p>
+    </footer>
+
+    <!-- Success Modal -->
+    <div class="modal-overlay" id="successModal">
+        <div class="modal glass-panel">
+            <h2>Level Complete!</h2>
+            
+            <div class="modal-stats">
+                <div>
+                    <p>Speed</p>
+                    <strong id="modal-wpm">0</strong>
+                </div>
+                <div>
+                    <p>Accuracy</p>
+                    <strong id="modal-acc">100%</strong>
+                </div>
+                <div>
+                    <p>Errors</p>
+                    <strong id="modal-err">0</strong>
+                </div>
+            </div>
+
+            <!-- Tips Section -->
+            <div class="modal-tip-box">
+                <strong>💡 Pro Tip</strong>
+                <span id="modal-tip-text">Great job! Keep practicing.</span>
+            </div>
+
+            <div class="modal-buttons">
+                <button onclick="closeModal(false)" style="background: transparent; border: 1px solid var(--surface-border); color: white; box-shadow: none;">Try Again</button>
+                <button onclick="closeModal(true)" id="nextBtn">Next Level</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONTENT DATA ---
+        const content = {
+            paragraph: [
+                "India fought a long and hard battle for freedom from British rule. Leaders like Jawaharlal Nehru and Subhas Chandra Bose were very brave. They loved the country deeply and led the people with great courage. The fight took many years, but the people never gave up hope for a free and independent nation.",
+                "India's struggle for independence was truly a remarkable chapter in global history. 'Give me blood, and I shall give you freedom!' roared Subhas Chandra Bose to his soldiers. Meanwhile, Jawaharlal Nehru and Sardar Vallabhbhai Patel worked tirelessly to unite the masses and build the strong foundation of a brand new, democratic nation.",
+                "In the historic year of 1947, India finally achieved its long-awaited independence! Leaders like Sardar Vallabhbhai Patel, often called the 'Iron Man of India', took on the monumental task of unifying over 562 distinct princely states. It was a massive, historic achievement that required immense political skill, unyielding patience, and absolute dedication to the motherland.",
+                "Subhas Chandra Bose (born on January 23, 1897) fiercely and uncompromisingly opposed the mighty British Empire! The 1940s witnessed tremendous global and national turmoil; however, visionaries like Nehru and Patel expertly navigated the extremely divisive and complex politics of M.A. Jinnah's Muslim League. The path to freedom was fraught with profound challenges, yet their unyielding spirit and love for a united India prevailed over every obstacle thrown their way.",
+                "At the exact stroke of the midnight hour on August 15, 1947, India finally awoke to \"life and freedom\"! Sardar Vallabhbhai Patel (1875-1950) successfully integrated an astonishing 565 fragmented states—a 100% unprecedented geopolitical feat! Despite the catastrophic fallout of Jinnah's 1940 Lahore Resolution (which directly resulted in the agonizing, blood-stained 1947 partition), these extraordinary visionaries transformed a struggling, newly-liberated territory into a massive, thriving, and fully democratic global powerhouse. We owe our 21st-century freedom entirely to their sacrifice!"
+            ],
+            coding: {
+                python: [
+                    '# Level 1: Hello World\nprint("Hello, World!")\nprint("Welcome to Python.")',
+                    '# Level 2: Operators & Print\na = 15\nb = 25\naddition = a + b\nsubtraction = b - a\nprint("Sum:", addition)\nprint("Diff:", subtraction)',
+                    '# Level 3: Loops & Pattern\nrows = 5\nfor i in range(1, rows + 1):\n    for j in range(1, i + 1):\n        print("*", end="")\n    print()',
+                    '# Level 4: Arrays & I/O\nimport array as arr\nnums = arr.array(\'i\', [10, 20, 30, 40])\ntotal = 0\nfor n in nums:\n    total += n\nprint("Total sum of array elements:", total)',
+                    '# Level 5: Palindrome Checker Disaster\ndef is_palindrome(s):\n    s = s.lower().replace(" ", "")\n    return s == s[::-1]\n\nuser_input = "A man a plan a canal Panama"\nif is_palindrome(user_input):\n    print("It is a palindrome!")\nelse:\n    print("Not a palindrome.")'
+                ],
+                cpp: [
+                    '#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello, World!" << endl;\n    return 0;\n}',
+                    '#include <iostream>\nusing namespace std;\n\nint main() {\n    int a = 10, b = 5;\n    cout << "Sum: " << (a + b) << endl;\n    cout << "Mod: " << (a % b) << endl;\n    return 0;\n}',
+                    '#include <iostream>\nusing namespace std;\n\nint main() {\n    for(int i = 1; i <= 5; ++i) {\n        for(int j = 1; j <= i; ++j) {\n            cout << "* ";\n        }\n        cout << "\\n";\n    }\n    return 0;\n}',
+                    '#include <iostream>\nusing namespace std;\n\nint main() {\n    int arr[5] = {1, 2, 3, 4, 5};\n    int sum = 0;\n    for(int i = 0; i < 5; i++) {\n        sum += arr[i];\n    }\n    cout << "Array Sum: " << sum << endl;\n    return 0;\n}',
+                    '#include <iostream>\n#include <string>\n#include <algorithm>\nusing namespace std;\n\nint main() {\n    string str = "racecar";\n    string rev = str;\n    reverse(rev.begin(), rev.end());\n    if (str == rev) {\n        cout << "Palindrome\\n";\n    } else {\n        cout << "Not Palindrome\\n";\n    }\n    return 0;\n}'
+                ],
+                html: [
+                    '<!DOCTYPE html>\n<html lang="en">\n<head>\n    <title>Level 1<\/title>\n<\/head>\n<body>\n    <h1>Hello World!<\/h1>\n<\/body>\n<\/html>',
+                    '<!DOCTYPE html>\n<html>\n<body>\n    <h2>User Login<\/h2>\n    <form action="/login" method="POST">\n        <label>Username:<\/label>\n        <input type="text" name="user" required>\n        <button type="submit">Login<\/button>\n    <\/form>\n<\/body>\n<\/html>',
+                    '<!DOCTYPE html>\n<html>\n<body>\n    <h2>Employee Data<\/h2>\n    <table border="1">\n        <tr>\n            <th>Name<\/th>\n            <th>Role<\/th>\n        <\/tr>\n        <tr>\n            <td>John<\/td>\n            <td>Developer<\/td>\n        <\/tr>\n    <\/table>\n<\/body>\n<\/html>',
+                    '<!DOCTYPE html>\n<html>\n<head>\n    <style>\n        .box { width: 100px; height: 100px; background: red; }\n    <\/style>\n<\/head>\n<body>\n    <div class="box"><\/div>\n    <ul>\n        <li>HTML<\/li>\n        <li>CSS<\/li>\n    <\/ul>\n<\/body>\n<\/html>',
+                    '<!DOCTYPE html>\n<html>\n<head>\n    <style>body { font-family: Arial; }<\/style>\n<\/head>\n<body>\n    <h1 id="title">Wait...<\/h1>\n    <script>\n        setTimeout(function() {\n            document.getElementById("title").innerText = "Success!";\n        }, 2000);\n    <\/script>\n<\/body>\n<\/html>'
+                ],
+                java: [
+                    'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}',
+                    'public class Main {\n    public static void main(String[] args) {\n        int num1 = 100;\n        int num2 = 25;\n        System.out.println("Product: " + (num1 * num2));\n        System.out.println("Div: " + (num1 / num2));\n    }\n}',
+                    'public class Main {\n    public static void main(String[] args) {\n        for (int i = 1; i <= 5; i++) {\n            for (int j = 1; j <= i; j++) {\n                System.out.print("* ");\n            }\n            System.out.println();\n        }\n    }\n}',
+                    'public class Main {\n    public static void main(String[] args) {\n        int[] numbers = {10, 20, 30, 40, 50};\n        int sum = 0;\n        for (int i = 0; i < numbers.length; i++) {\n            sum += numbers[i];\n        }\n        System.out.println("Sum is: " + sum);\n    }\n}',
+                    'public class Main {\n    public static void main(String[] args) {\n        String str = "madam", reverseStr = "";\n        for (int i = str.length() - 1; i >= 0; i--) {\n            reverseStr = reverseStr + str.charAt(i);\n        }\n        if (str.equals(reverseStr)) {\n            System.out.println("Palindrome Check Passed");\n        }\n    }\n}'
+                ]
+            }
+        };
+
+        // --- UPGRADED LOUDER "KHAT KHAT" AUDIO ENGINE ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(isCorrect) {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            if (isCorrect) {
+                // Heavy Mechanical Switch (Khat) - Fast & Low
+                osc.type = 'square'; 
+                osc.frequency.setValueAtTime(120, audioCtx.currentTime); 
+                osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.05);
+                // 1.0 is the absolute max volume before it distorts and sounds like the error beep
+                gainNode.gain.setValueAtTime(1.0, audioCtx.currentTime); 
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.05);
+            } else {
+                // Distinct Error Buzz - Higher pitched & slightly longer
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(350, audioCtx.currentTime); 
+                // Notice there is no pitch drop here, making it a distinct sharp buzz
+                gainNode.gain.setValueAtTime(0.7, audioCtx.currentTime); 
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.15);
+            }
+        }
+
+        // --- APP LOGIC ---
+        let currentText = "";
+        let charIndex = 0;
+        let mistakes = 0;
+        let isTyping = false;
+        let startTime = 0;
+        let timerInterval;
+
+        const textDisplay = document.getElementById("textDisplay");
+        const hiddenInput = document.getElementById("hidden-input");
+        const modeSelect = document.getElementById("modeSelect");
+        const langSelect = document.getElementById("langSelect");
+        const levelSelect = document.getElementById("levelSelect");
+        const wpmTag = document.getElementById("wpm");
+        const accuracyTag = document.getElementById("accuracy");
+        const errorTag = document.getElementById("errors");
+        const modal = document.getElementById("successModal");
+        const nextBtn = document.getElementById("nextBtn");
+        const customContainer = document.getElementById("customInputContainer");
+        const customTextArea = document.getElementById("customTextArea");
+        const freeTypeArea = document.getElementById("freeTypeArea");
+
+        // --- UPGRADED VOICE CONTROL ENGINE ---
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+        let isVoiceActive = false;
+
+        if (typeof SpeechRecognition !== "undefined") {
+            recognition = new SpeechRecognition();
+            recognition.continuous = true; 
+            recognition.interimResults = false; 
+            recognition.lang = "en-US";
+
+            recognition.onresult = (event) => {
+                const current = event.resultIndex;
+                const transcript = event.results[current][0].transcript.toLowerCase().trim();
+                
+                // Controls
+                if (transcript.includes("reset") || transcript.includes("restart")) {
+                    resetTest();
+                } else if (transcript.includes("next") || transcript.includes("next level")) {
+                    if (modal.classList.contains("show") && nextBtn.style.display !== "none") closeModal(true);
+                } else if (transcript.includes("try again") || transcript.includes("retry")) {
+                    if (modal.classList.contains("show")) closeModal(false);
+                } 
+                
+                // Modes
+                else if (transcript.includes("paragraph")) {
+                    modeSelect.value = "paragraph"; updateUI();
+                } else if (transcript.includes("coding")) {
+                    modeSelect.value = "coding"; updateUI();
+                } else if (transcript.includes("custom")) {
+                    modeSelect.value = "custom"; updateUI();
+                } else if (transcript.includes("free type") || transcript.includes("pure speed")) {
+                    modeSelect.value = "free"; updateUI();
+                } 
+                
+                // Languages
+                else if (transcript.includes("python") && modeSelect.value === "coding") {
+                    langSelect.value = "python"; loadLevel();
+                } else if (transcript.includes("java") && modeSelect.value === "coding") {
+                    langSelect.value = "java"; loadLevel();
+                } else if (transcript.includes("html") && modeSelect.value === "coding") {
+                    langSelect.value = "html"; loadLevel();
+                } else if ((transcript.includes("c++") || transcript.includes("see plus plus")) && modeSelect.value === "coding") {
+                    langSelect.value = "cpp"; loadLevel();
+                }
+                
+                // NEW: Level Selection
+                if (levelSelect.style.display !== "none") {
+                    if (transcript.includes("level 1") || transcript.includes("level one")) {
+                        levelSelect.value = 0; loadLevel();
+                    } else if (transcript.includes("level 2") || transcript.includes("level two")) {
+                        levelSelect.value = 1; loadLevel();
+                    } else if (transcript.includes("level 3") || transcript.includes("level three")) {
+                        levelSelect.value = 2; loadLevel();
+                    } else if (transcript.includes("level 4") || transcript.includes("level four")) {
+                        levelSelect.value = 3; loadLevel();
+                    } else if (transcript.includes("level 5") || transcript.includes("level five")) {
+                        levelSelect.value = 4; loadLevel();
+                    }
+                }
+            };
+
+            recognition.onend = () => { if (isVoiceActive) try { recognition.start(); } catch(e) {} };
+        }
+
+        function toggleVoice() {
+            const btn = document.getElementById("voiceBtn");
+            if (!SpeechRecognition) return alert("Your browser doesn't support the Web Speech API. Please try Chrome or Edge.");
+            if (!isVoiceActive) {
+                isVoiceActive = true; recognition.start();
+                btn.innerHTML = "🎤 Voice: ON"; btn.classList.add("voice-active");
+            } else {
+                isVoiceActive = false; recognition.stop();
+                btn.innerHTML = "🎤 Voice: OFF"; btn.classList.remove("voice-active");
+            }
+            if (modeSelect.value === 'free') freeTypeArea.focus();
+            else hiddenInput.focus();
+        }
+
+        function updateUI() {
+            const mode = modeSelect.value;
+            const isCoding = mode === "coding";
+            const isCustom = mode === "custom";
+            const isFree = mode === "free";
+            
+            langSelect.style.display = isCoding ? "inline-block" : "none";
+            levelSelect.style.display = (isCustom || isFree) ? "none" : "inline-block";
+            customContainer.style.display = isCustom ? "flex" : "none";
+
+            if (isFree) {
+                freeTypeArea.style.display = "block";
+                textDisplay.style.display = "none";
+                hiddenInput.disabled = true;
+                resetTestStats();
+                setTimeout(() => { freeTypeArea.focus(); }, 50);
+                return;
+            } else {
+                freeTypeArea.style.display = "none";
+                textDisplay.style.display = "block";
+                hiddenInput.disabled = false;
+            }
+
+            if (isCustom) {
+                currentText = "Paste your text above and click 'Load Custom Code & Start'.";
+                renderText();
+                resetTestStats();
+                return;
+            }
+            
+            levelSelect.innerHTML = "";
+            let options = isCoding ? 
+                ["Level 1 (Hello World / Basic)", "Level 2 (Operators & Print)", "Level 3 (Loops & Patterns)", "Level 4 (Arrays & I/O)", "Level 5 (Complete Disaster!)"] : 
+                ["Level 1 (Simple History)", "Level 2 (Quotes & Grammar)", "Level 3 (Numeric Dates)", "Level 4 (Complex Details)", "Level 5 (Absolute Disaster!)"];
+
+            options.forEach((optText, index) => {
+                let opt = document.createElement("option");
+                opt.value = index; opt.innerText = optText;
+                levelSelect.appendChild(opt);
+            });
+            loadLevel();
+        }
+
+        function loadCustomText() {
+            let rawText = customTextArea.value.trim();
+            if (!rawText) {
+                rawText = "Please paste some text into the box above before loading.";
+            } else {
+                rawText = rawText.replace(/\t/g, "    ");
+                rawText = rawText.replace(/\r\n/g, "\n");
+            }
+            
+            currentText = rawText;
+            nextBtn.style.display = "none";
+            
+            renderText();
+            resetTestStats();
+            setTimeout(() => { hiddenInput.focus(); }, 50);
+        }
+
+        function loadLevel() {
+            if (modeSelect.value === "custom" || modeSelect.value === "free") {
+                if (modeSelect.value === "custom") loadCustomText();
+                return;
+            }
+
+            const lvl = parseInt(levelSelect.value);
+            currentText = modeSelect.value === "paragraph" ? content.paragraph[lvl] : content.coding[langSelect.value][lvl];
+            
+            renderText();
+            resetTestStats();
+        }
+
+        function renderText() {
+            textDisplay.innerHTML = "";
+            currentText.split("").forEach((char, index) => {
+                let span = document.createElement("span");
+                span.innerText = char;
+                span.classList.add("char");
+                if (char === '\n') span.classList.add("newline");
+                if (index === 0) span.classList.add("active");
+                textDisplay.appendChild(span);
+            });
+        }
+
+        function resetTestStats() {
+            charIndex = 0; mistakes = 0; isTyping = false;
+            clearInterval(timerInterval);
+            hiddenInput.value = ""; 
+            if(modeSelect.value !== 'free') hiddenInput.disabled = false;
+            freeTypeArea.value = "";
+            
+            wpmTag.innerText = "0"; accuracyTag.innerText = "100%"; errorTag.innerText = "0";
+            
+            const spans = document.querySelectorAll(".char");
+            spans.forEach(span => span.className = "char" + (span.innerText === '\n' ? " newline" : ""));
+            if(spans.length > 0) spans[0].classList.add("active");
+        }
+
+        function resetTest() {
+            loadLevel();
+            if (modeSelect.value === 'free') {
+                resetTestStats();
+                setTimeout(() => { freeTypeArea.focus(); }, 50);
+            } else {
+                setTimeout(() => { hiddenInput.focus(); }, 50);
+            }
+        }
+
+        function calculateRealTimeStats() {
+            if (!isTyping) return;
+            const timeElapsed = (Date.now() - startTime) / 1000 / 60; 
+            
+            if (modeSelect.value === 'free') {
+                if (timeElapsed > 0) {
+                    let wpm = Math.round((freeTypeArea.value.length / 5) / timeElapsed);
+                    wpmTag.innerText = wpm > 0 ? wpm : 0;
+                }
+                accuracyTag.innerText = "100%";
+                errorTag.innerText = "0";
+                return;
+            }
+
+            if (timeElapsed > 0) {
+                let wpm = Math.round(((charIndex - mistakes) / 5) / timeElapsed);
+                wpmTag.innerText = wpm < 0 || !wpm || wpm === Infinity ? 0 : wpm;
+            }
+            let accuracy = charIndex > 0 ? Math.round(((charIndex - mistakes) / charIndex) * 100) : 100;
+            accuracyTag.innerText = (accuracy < 0 ? 0 : accuracy) + "%";
+            errorTag.innerText = mistakes;
+        }
+
+        function finishLevel() {
+            clearInterval(timerInterval);
+            hiddenInput.disabled = true; 
+            calculateRealTimeStats();
+            
+            let finalWPM = parseInt(wpmTag.innerText);
+            let finalAcc = parseInt(accuracyTag.innerText);
+            let finalErr = parseInt(errorTag.innerText);
+
+            document.getElementById("modal-wpm").innerText = finalWPM;
+            document.getElementById("modal-acc").innerText = finalAcc + "%";
+            document.getElementById("modal-err").innerText = finalErr;
+            
+            let tip = "";
+            if (finalErr === 0 && finalWPM > 40) tip = "Flawless typing! You are a true Typing Master. Try to push your speed even further.";
+            else if (finalErr > 10) tip = "You are making quite a few errors. Try slowing down, breathing, and focusing on hitting the correct keys.";
+            else if (finalWPM > 50 && finalAcc < 93) tip = "Great speed, but your accuracy is dropping! Slow down just a fraction to eliminate mistakes.";
+            else if (finalWPM < 25) tip = "Speed comes naturally with time. Keep practicing to build your muscle memory. Don't rush!";
+            else tip = "Great effort! Consistency is key. Keep practicing daily to improve both your speed and accuracy.";
+            document.getElementById("modal-tip-text").innerText = tip;
+
+            if (modeSelect.value === "custom" || parseInt(levelSelect.value) === 4) { 
+                nextBtn.style.display = "none";
+            } else {
+                nextBtn.style.display = "inline-block";
+            }
+
+            modal.classList.add("show");
+        }
+
+        function closeModal(nextLevel) {
+            modal.classList.remove("show");
+            if (nextLevel && modeSelect.value !== "custom" && modeSelect.value !== "free") {
+                let currentLvl = parseInt(levelSelect.value);
+                if (currentLvl < 4) levelSelect.value = currentLvl + 1;
+            }
+            resetTest();
+        }
+
+        // --- NEW: Free Type Key Handler ---
+        freeTypeArea.addEventListener('keydown', (e) => {
+            if (modeSelect.value === 'free') {
+                if(e.key !== "Shift" && e.key !== "Control" && e.key !== "Alt" && e.key !== "Tab" && e.key !== "CapsLock") {
+                    playSound(true);
+                }
+                if (!isTyping && e.key.length === 1) {
+                    isTyping = true;
+                    startTime = Date.now();
+                    timerInterval = setInterval(calculateRealTimeStats, 100);
+                }
+            }
+        });
+
+        // --- Standard Typing Engine ---
+        function initTyping(e) {
+            const characters = document.querySelectorAll(".char");
+            
+            if(e.key === "Tab") { e.preventDefault(); return; }
+
+            if (e.key === "Backspace") {
+                if (charIndex > 0) {
+                    characters[charIndex].classList.remove("active");
+                    
+                    charIndex--; 
+                    if (characters[charIndex].classList.contains("incorrect")) mistakes--;
+                    characters[charIndex].className = "char" + (characters[charIndex].innerText === '\n' ? " newline" : "");
+
+                    let isLeadingSpace = false;
+                    if (characters[charIndex].innerText === ' ') {
+                        let temp = charIndex;
+                        while (temp >= 0 && characters[temp].innerText === ' ') temp--;
+                        if (temp < 0 || characters[temp].innerText === '\n') isLeadingSpace = true;
+                    }
+
+                    if (isLeadingSpace) {
+                        while (charIndex >= 0 && characters[charIndex].innerText === ' ') {
+                            characters[charIndex].className = "char";
+                            charIndex--;
+                        }
+                        if (charIndex >= 0 && characters[charIndex].innerText === '\n') {
+                            if (characters[charIndex].classList.contains("incorrect")) mistakes--;
+                            characters[charIndex].className = "char newline";
+                        }
+                    }
+                    
+                    if (charIndex >= 0) characters[charIndex].classList.add("active");
+                    else { charIndex = 0; characters[0].classList.add("active"); }
+                }
+                return;
+            }
+
+            if (e.key.length !== 1 && e.key !== "Enter") return;
+
+            if (!isTyping) {
+                isTyping = true;
+                startTime = Date.now();
+                timerInterval = setInterval(calculateRealTimeStats, 100);
+            }
+
+            const expectedChar = characters[charIndex].innerText;
+            let typedChar = e.key === "Enter" ? "\n" : e.key;
+
+            if (expectedChar === typedChar) {
+                playSound(true);
+                characters[charIndex].classList.add("correct");
+            } else {
+                playSound(false);
+                mistakes++;
+                characters[charIndex].classList.add("incorrect");
+            }
+            
+            characters[charIndex].classList.remove("active");
+            charIndex++;
+            
+            if (expectedChar === '\n' && typedChar === '\n') {
+                while (charIndex < characters.length && characters[charIndex].innerText === ' ') {
+                    characters[charIndex].classList.add("correct");
+                    charIndex++;
+                }
+            }
+
+            if (charIndex < characters.length) {
+                characters[charIndex].classList.add("active");
+            } else {
+                finishLevel();
+            }
+
+            calculateRealTimeStats();
+            
+            if(e.key === " " || e.key === "Enter") {
+                e.preventDefault();
+            }
+        }
+
+        hiddenInput.addEventListener("keydown", initTyping);
+        
+        // --- NEW: Global Shortcuts Handler ---
+        document.addEventListener("keydown", (e) => {
+            // Shortcut: Alt + M to Change Mode
+            if (e.altKey && e.key.toLowerCase() === 'm') {
+                e.preventDefault();
+                const modes = ["paragraph", "coding", "custom", "free"];
+                let currentIndex = modes.indexOf(modeSelect.value);
+                modeSelect.value = modes[(currentIndex + 1) % modes.length];
+                updateUI();
+            }
+            
+            // Shortcut: Alt + R to Restart Test
+            if (e.altKey && e.key.toLowerCase() === 'r') {
+                e.preventDefault();
+                resetTest();
+            }
+
+            // Ensure focus stays correctly placed
+            if (document.activeElement !== customTextArea && document.activeElement !== freeTypeArea && modeSelect.value !== 'free') {
+                hiddenInput.focus();
+            }
+        });
+        
+        window.onload = () => {
+            updateUI(); 
+            if (modeSelect.value === 'free') freeTypeArea.focus();
+            else hiddenInput.focus();
+        };
+
+    </script>
+</body>
+</html>
