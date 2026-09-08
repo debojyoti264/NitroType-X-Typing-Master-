@@ -1,7 +1,6 @@
 # NitroType-X (Typing Master)
 
 ![NitroType-X Screenshot](screenshot.png) 
-*(Note: Upload your screenshot image to the repository and name it `screenshot.png` to display it here)*
 
 NitroType-X is an advanced, cyberpunk-themed typing speed tester designed to help users improve their typing speed across standard text and programming languages. It features a custom Web Audio engine that simulates mechanical keyboard sounds and a Web Speech API integration for hands-free voice control.
 
